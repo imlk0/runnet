@@ -1,8 +1,8 @@
-# 🔀netrun
+# 🔀runnet
 
-This is a lightweight container script that allows programs to run in an separate environment with a virtual network interface. It implements network interface isolation and bidirectional port mapping based on the network namespace.
+This is a lightweight container script that allows programs to run in an separate network environment with a virtual network interface. It implements network interface isolation and bidirectional port mapping based on the network namespace.
 
-Using this tool, you can avoid the conflict of listening ports. And you can also map the listening port of the program to any port
+Using this tool, you can avoid the conflict of listening ports. And you can also map the listening port of the program to any port.
 
 # Install
 
