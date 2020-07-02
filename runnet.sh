@@ -1,3 +1,5 @@
+#!/bin/bash
+
 outer_addr=''
 inner_addr=''
 net_ns_name="runnet$$"
@@ -10,14 +12,6 @@ cmd_user=
 publish_list=()
 forward_list=()
 
-# sudo ip netns exec ${net_ns_name} sudo -u imlk bash
-
-# --forward=7474:7474
-# --publish=7474:7474
-# --user=root
-# --internet
-# --out-if=
-# host.docker.internal
 
 in_subnet() {
     local subnet mask subnet_split ip_split subnet_mask subnet_start subnet_end ip rval
@@ -141,7 +135,7 @@ setup_port_mapping() {
     done
 }
 
-kill_this(){
+kill_this() {
     shut_down
     pkill -P $$
 }
@@ -159,7 +153,17 @@ warning() {
 }
 
 usage() {
-    echo "This is usage part"
+    echo "Run cmd in a isolation network namespace."
+    echo ""
+    echo "usage:"
+    echo "    runnet [options] <cmd>"
+    echo "options:"
+    echo "    --internet                          Enable Internet access"
+    echo "    --out-if=<interface>                Specify the default network interface, only required if --internet is specified."
+    echo "    --user=<username>                   The user that the program runs as."
+    echo "    --forward=[host:]<port>:<port>      Forward a external port([host:]<port>) to the inside the container."
+    echo "    --publish=<port>:<port>             Publish the port inside the container to the host."
+
 }
 
 if [[ ${EUID} -ne 0 ]]; then
@@ -198,6 +202,10 @@ while true; do
         shift
         break
         ;;
+    -*)
+        usage
+        exit 1
+        ;;
     *)
         break
         ;;
@@ -224,4 +232,3 @@ else
     warning "\${SUDO_USER} is empty and cmd will run as root"
 fi
 ip netns exec ${net_ns_name} ${cmd}
-
