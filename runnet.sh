@@ -81,7 +81,7 @@ start_up() {
         # add default route
         ip netns exec ${net_ns_name} ip route add default via ${outer_addr}
         # enable NAT
-        bash -c "echo 1 > /proc/sys/net/ipv4/ip_forward"
+        echo 1 > /proc/sys/net/ipv4/ip_forward
         iptables -t nat -A POSTROUTING -s ${inner_addr}/24 -o ${out_interface} -j MASQUERADE
         iptables -t filter -A FORWARD -i ${out_interface} -o ${veth_outer_name} -j ACCEPT
         iptables -t filter -A FORWARD -o ${out_interface} -i ${veth_outer_name} -j ACCEPT
@@ -135,6 +135,12 @@ setup_port_mapping() {
     done
 }
 
+do_install(){
+    script_path=$(realpath $0)
+    echo "install -m 755 ${script_path} /usr/local/bin/runnet"
+    install -m 755 ${script_path} /usr/local/bin/runnet
+}
+
 kill_this() {
     shut_down
     pkill -P $$
@@ -158,21 +164,24 @@ usage() {
     echo "usage:"
     echo "    runnet [options] <cmd>"
     echo "options:"
-    echo "    --internet                          Enable Internet access"
+    echo "    --install                           Copy this script to /usr/local/bin/runnet"
+    echo ""
+    echo "    --internet                          Enable Internet access, By default, there is no Internet access in the container."
     echo "    --out-if=<interface>                Specify the default network interface, only required if --internet is specified."
-    echo "    --user=<username>                   The user that the program runs as."
-    echo "    --forward=[host:]<port>:<port>      Forward a external port([host:]<port>) to the inside the container."
-    echo "    --publish=<port>:<port>             Publish the port inside the container to the host."
+    echo "    --user=<username>                   The user that the program runs as. By default, we will read username from \${SUDO_USER}. If \${SUDO_USER} is empty, we will run program as root."
+    echo "    --forward=[host:]<port1>:<port2>    Forward a external port([host:]<port1>) to <port2> inside the container."
+    echo "    --publish=<port1>:<port2>           Publish the <port2> inside the container to the host <port1>."
+
 
 }
 
-if [[ ${EUID} -ne 0 ]]; then
-    error "This script must be run as root"
+if [[ $# -eq 0 ]]; then
+    usage
     exit 1
 fi
 
-if [[ $# -eq 0 ]]; then
-    usage
+if [[ ${EUID} -ne 0 ]]; then
+    error "This script must be run as root"
     exit 1
 fi
 
@@ -197,6 +206,10 @@ while true; do
     --forward=*:*)
         forward_list+=(${1:10})
         shift
+        ;;
+    --install)
+        do_install
+        exit 0
         ;;
     -)
         shift
