@@ -2,7 +2,7 @@
 
 This is a lightweight "network container" script that allows programs to run in an separate network environment with a virtual network interface. It implements network namespace-based isolation of network interfaces and socat-based bi-directional port mapping.
 
-# What this can be used for？
+# What can this be used for？
 
 - You can avoid the conflict of listening ports. And you can also change listening port of your server program to any port without any code changes.
 - Run a dangerous program in a environment without internet connection.
