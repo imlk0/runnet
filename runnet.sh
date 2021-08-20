@@ -47,14 +47,14 @@ setup_addr() {
             return
         fi
     done
-    error "Unable to find unused subnet in range 192.168.0.0 - 192.168.255.0, please customize it" || exit 1
+    error "Unable to find unused subnet in range 192.168.0.0 - 192.168.255.0, please customize it" ; exit 1
 }
 
 setup_interface() {
     local dev
     dev=$(ip -4 route list 0/0 | cut -d ' ' -f 5)
     if [[ ${dev} == "" ]]; then
-        error "Can not identify the default gateway interface. You must specify it by --out-if" || exit 1
+        error "Can not identify the default gateway interface. You must specify it by --out-if" ; exit 1
     fi
     out_interface=$dev
 }
@@ -81,7 +81,7 @@ start_up() {
         # add default route
         ip netns exec ${net_ns_name} ip route add default via ${outer_addr}
         # enable NAT
-        echo 1 > /proc/sys/net/ipv4/ip_forward
+        bash -c "echo 1 > /proc/sys/net/ipv4/ip_forward"
         iptables -t nat -A POSTROUTING -s ${inner_addr}/24 -o ${out_interface} -j MASQUERADE
         iptables -t filter -A FORWARD -i ${out_interface} -o ${veth_outer_name} -j ACCEPT
         iptables -t filter -A FORWARD -o ${out_interface} -i ${veth_outer_name} -j ACCEPT
@@ -166,11 +166,11 @@ usage() {
     echo "options:"
     echo "    --install                           Copy this script to /usr/local/bin/runnet"
     echo ""
-    echo "    --internet                          Enable Internet access, By default, there is no Internet access in the container."
+    echo "    --internet                          Enable Internet access"
     echo "    --out-if=<interface>                Specify the default network interface, only required if --internet is specified."
-    echo "    --user=<username>                   The user that the program runs as. By default, we will read username from \${SUDO_USER}. If \${SUDO_USER} is empty, we will run program as root."
-    echo "    --forward=[host:]<port1>:<port2>    Forward a external port([host:]<port1>) to <port2> inside the container."
-    echo "    --publish=<port1>:<port2>           Publish the <port2> inside the container to the host <port1>."
+    echo "    --user=<username>                   The user that the program runs as."
+    echo "    --forward=[host:]<port>:<port>      Forward a external port([host:]<port>) to the inside the container."
+    echo "    --publish=<port>:<port>             Publish the port inside the container to the host."
 
 
 }
