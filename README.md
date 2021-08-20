@@ -57,7 +57,7 @@ options:
   sudo runnet ifconfig
   ```
 
-  output:
+  example output:
 
   ```
   lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
