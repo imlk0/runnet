@@ -2,9 +2,9 @@
 
 outer_addr=''
 inner_addr=''
-net_ns_name="runnet$$"
-veth_outer_name="runnet$$_vo"
-veth_inner_name="runnet$$_vi"
+net_ns_name="rn$$"
+veth_outer_name="rn$$_vo"
+veth_inner_name="rn$$_vi"
 out_interface=''
 
 need_internet=0
