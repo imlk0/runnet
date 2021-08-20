@@ -6,7 +6,7 @@ This is a lightweight "network container" script that allows programs to run in 
 
 - You can avoid the conflict of listening ports. And you can also change listening port of your server program to any port without any code changes.
 - Run a dangerous program in a environment without internet connection.
-- Capture all packets sent by a specific program with wireshark
+- Capture all packets sent by a specific program with wireshark.
 
 
 # Install
