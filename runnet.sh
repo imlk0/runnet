@@ -74,7 +74,8 @@ start_up() {
         bash -c "echo 1 > /proc/sys/net/ipv4/ip_forward"
         iptables -t nat -A POSTROUTING -s ${inner_addr}/24 ! -o ${veth_outer_name} -j MASQUERADE
         iptables -t filter -A FORWARD -i any -o ${veth_outer_name} -j ACCEPT
-        iptables -t filter -A FORWARD -o any -i ${veth_outer_name} -j ACCEPT
+        iptables -t filter -A FORWARD -i ${veth_outer_name} -o ${veth_outer_name} -j ACCEPT
+        iptables -t filter -A FORWARD -i ${veth_outer_name} ! -o ${veth_outer_name} -j ACCEPT
     fi
 }
 
@@ -84,7 +85,8 @@ shut_down() {
         # disable NAT
         iptables -t nat -D POSTROUTING -s ${inner_addr}/24 ! -o ${veth_outer_name} -j MASQUERADE
         iptables -t filter -D FORWARD -i any -o ${veth_outer_name} -j ACCEPT
-        iptables -t filter -D FORWARD -o any -i ${veth_outer_name} -j ACCEPT
+        iptables -t filter -D FORWARD -i ${veth_outer_name} -o ${veth_outer_name} -j ACCEPT
+        iptables -t filter -D FORWARD -i ${veth_outer_name} ! -o ${veth_outer_name} -j ACCEPT
     fi
     # delete veth
     ip link delete ${veth_outer_name}
