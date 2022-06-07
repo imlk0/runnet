@@ -43,7 +43,6 @@ options:
     --install                           Copy this script to /usr/local/bin/runnet
 
     --internet                          Enable Internet access, By default, there is no Internet access in the container.
-    --out-if=<interface>                Specify the default network interface, only required if --internet is specified.
     --user=<username>                   The user that the program runs as. By default, we will read username from ${SUDO_USER}. If ${SUDO_USER} is empty, we will run program as root.
     --forward=[host:]<port1>:<port2>    Forward a external port([host:]<port1>) to <port2> inside the container.
     --publish=<port1>:<port2>           Publish the <port2> inside the container to the host <port1>.

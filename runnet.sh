@@ -5,7 +5,6 @@ inner_addr=''
 net_ns_name="rn$$"
 veth_outer_name="rn$$_vo"
 veth_inner_name="rn$$_vi"
-out_interface=''
 
 need_internet=0
 cmd_user=
@@ -50,15 +49,6 @@ setup_addr() {
     error "Unable to find unused subnet in range 192.168.0.0 - 192.168.255.0, please customize it" ; exit 1
 }
 
-setup_interface() {
-    local dev
-    dev=$(ip -4 route list 0/0 | cut -d ' ' -f 5)
-    if [[ ${dev} == "" ]]; then
-        error "Can not identify the default gateway interface. You must specify it by --out-if" ; exit 1
-    fi
-    out_interface=$dev
-}
-
 # start up env
 start_up() {
     # add net namespace
@@ -82,9 +72,9 @@ start_up() {
         ip netns exec ${net_ns_name} ip route add default via ${outer_addr}
         # enable NAT
         bash -c "echo 1 > /proc/sys/net/ipv4/ip_forward"
-        iptables -t nat -A POSTROUTING -s ${inner_addr}/24 -o ${out_interface} -j MASQUERADE
-        iptables -t filter -A FORWARD -i ${out_interface} -o ${veth_outer_name} -j ACCEPT
-        iptables -t filter -A FORWARD -o ${out_interface} -i ${veth_outer_name} -j ACCEPT
+        iptables -t nat -A POSTROUTING -s ${inner_addr}/24 ! -o ${veth_outer_name} -j MASQUERADE
+        iptables -t filter -A FORWARD -i any -o ${veth_outer_name} -j ACCEPT
+        iptables -t filter -A FORWARD -o any -i ${veth_outer_name} -j ACCEPT
     fi
 }
 
@@ -92,9 +82,9 @@ start_up() {
 shut_down() {
     if [[ ${need_internet} -eq 1 ]]; then
         # disable NAT
-        iptables -t nat -D POSTROUTING -s ${inner_addr}/24 -o ${out_interface} -j MASQUERADE
-        iptables -t filter -D FORWARD -i ${out_interface} -o ${veth_outer_name} -j ACCEPT
-        iptables -t filter -D FORWARD -o ${out_interface} -i ${veth_outer_name} -j ACCEPT
+        iptables -t nat -D POSTROUTING -s ${inner_addr}/24 ! -o ${veth_outer_name} -j MASQUERADE
+        iptables -t filter -D FORWARD -i any -o ${veth_outer_name} -j ACCEPT
+        iptables -t filter -D FORWARD -o any -i ${veth_outer_name} -j ACCEPT
     fi
     # delete veth
     ip link delete ${veth_outer_name}
@@ -167,7 +157,6 @@ usage() {
     echo "    --install                           Copy this script to /usr/local/bin/runnet"
     echo ""
     echo "    --internet                          Enable Internet access"
-    echo "    --out-if=<interface>                Specify the default network interface, only required if --internet is specified."
     echo "    --user=<username>                   The user that the program runs as."
     echo "    --forward=[host:]<port>:<port>      Forward a external port([host:]<port>) to the inside the container."
     echo "    --publish=<port>:<port>             Publish the port inside the container to the host."
@@ -193,10 +182,6 @@ while true; do
         ;;
     --user=*)
         cmd_user=${1:7}
-        shift
-        ;;
-    --out-if=*)
-        out_interface=${1:9}
         shift
         ;;
     --publish=*:*)
@@ -226,8 +211,6 @@ while true; do
 done
 
 setup_addr
-
-[[ ${out_interface} == "" ]] && setup_interface
 
 trap kill_this EXIT
 
