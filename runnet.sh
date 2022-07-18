@@ -5,8 +5,8 @@ outer_addr_mask=''
 inner_addr=''
 inner_addr_mask=''
 net_ns_name="rn$$"
-veth_outer_name="rn$$_vo"
-veth_inner_name="rn$$_vi"
+veth_outer_name="${net_ns_name}_vo"
+veth_inner_name="${net_ns_name}_vi"
 
 need_internet=0
 cmd_user=
@@ -168,7 +168,7 @@ usage() {
     echo "    --publish=<port>:<port>             Publish the port inside the container to the host."
     echo "    --outer-addr=<addr>/<mask>          Specific the address & mask of host side interface."
     echo "    --inner-addr=<addr>/<mask>          Specific the address & mask of container side interface."
-
+    echo "    --netns=<netns_name>                Specific the name of created network namespace. A random name will be used if not set."
 }
 
 if [[ $# -eq 0 ]]; then
@@ -209,6 +209,12 @@ while true; do
         _addr=${1:13}
         inner_addr="${_addr/\/*/}"
         inner_addr_mask="${_addr/*\//}"
+        shift
+        ;;
+    --netns=*)
+        net_ns_name=${1:8}
+        veth_outer_name="${net_ns_name:0:12}_vo"
+        veth_inner_name="${net_ns_name:0:12}_vi"
         shift
         ;;
     --install)
