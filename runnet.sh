@@ -1,7 +1,9 @@
 #!/bin/bash
 
 outer_addr=''
+outer_addr_mask=''
 inner_addr=''
+inner_addr_mask=''
 net_ns_name="rn$$"
 veth_outer_name="rn$$_vo"
 veth_inner_name="rn$$_vi"
@@ -10,7 +12,6 @@ need_internet=0
 cmd_user=
 publish_list=()
 forward_list=()
-
 
 in_subnet() {
     local subnet mask subnet_split ip_split subnet_mask subnet_start subnet_end ip rval
@@ -42,11 +43,14 @@ setup_addr() {
         done
         if [[ ${ok} -eq 1 ]]; then
             outer_addr="192.168.${ip_num}.1"
+            outer_addr_mask=24
             inner_addr="192.168.${ip_num}.2"
+            inner_addr_mask=24
             return
         fi
     done
-    error "Unable to find unused subnet in range 192.168.0.0 - 192.168.255.0, please customize it" ; exit 1
+    error "Unable to find unused subnet in range 192.168.0.0 - 192.168.255.0, please customize it"
+    exit 1
 }
 
 # start up env
@@ -58,12 +62,12 @@ start_up() {
     ip link add ${veth_outer_name} type veth peer name ${veth_inner_name}
     # setup veth_outer
     ip link set ${veth_outer_name} up
-    ip addr add ${outer_addr}/24 dev ${veth_outer_name}
+    ip addr add ${outer_addr}/${outer_addr_mask} dev ${veth_outer_name}
 
     # setup veth_inner
     ip link set ${veth_inner_name} netns ${net_ns_name}
     ip netns exec ${net_ns_name} ip link set ${veth_inner_name} up
-    ip netns exec ${net_ns_name} ip addr add ${inner_addr}/24 dev ${veth_inner_name}
+    ip netns exec ${net_ns_name} ip addr add ${inner_addr}/${inner_addr_mask} dev ${veth_inner_name}
     # enable loopback
     ip netns exec ${net_ns_name} ip link set lo up
 
@@ -72,7 +76,7 @@ start_up() {
         ip netns exec ${net_ns_name} ip route add default via ${outer_addr}
         # enable NAT
         bash -c "echo 1 > /proc/sys/net/ipv4/ip_forward"
-        iptables -t nat -A POSTROUTING -s ${inner_addr}/24 ! -o ${veth_outer_name} -j MASQUERADE
+        iptables -t nat -A POSTROUTING -s ${inner_addr}/${inner_addr_mask} ! -o ${veth_outer_name} -j MASQUERADE
         iptables -t filter -A FORWARD -i any -o ${veth_outer_name} -j ACCEPT
         iptables -t filter -A FORWARD -i ${veth_outer_name} -o ${veth_outer_name} -j ACCEPT
         iptables -t filter -A FORWARD -i ${veth_outer_name} ! -o ${veth_outer_name} -j ACCEPT
@@ -83,7 +87,7 @@ start_up() {
 shut_down() {
     if [[ ${need_internet} -eq 1 ]]; then
         # disable NAT
-        iptables -t nat -D POSTROUTING -s ${inner_addr}/24 ! -o ${veth_outer_name} -j MASQUERADE
+        iptables -t nat -D POSTROUTING -s ${inner_addr}/${inner_addr_mask} ! -o ${veth_outer_name} -j MASQUERADE
         iptables -t filter -D FORWARD -i any -o ${veth_outer_name} -j ACCEPT
         iptables -t filter -D FORWARD -i ${veth_outer_name} -o ${veth_outer_name} -j ACCEPT
         iptables -t filter -D FORWARD -i ${veth_outer_name} ! -o ${veth_outer_name} -j ACCEPT
@@ -127,7 +131,7 @@ setup_port_mapping() {
     done
 }
 
-do_install(){
+do_install() {
     script_path=$(realpath $0)
     echo "install -m 755 ${script_path} /usr/local/bin/runnet"
     install -m 755 ${script_path} /usr/local/bin/runnet
@@ -162,7 +166,8 @@ usage() {
     echo "    --user=<username>                   The user that the program runs as."
     echo "    --forward=[host:]<port>:<port>      Forward a external port([host:]<port>) to the inside the container."
     echo "    --publish=<port>:<port>             Publish the port inside the container to the host."
-
+    echo "    --outer-addr=<addr>/<mask>          Specific the address & mask of host side interface."
+    echo "    --inner-addr=<addr>/<mask>          Specific the address & mask of container side interface."
 
 }
 
@@ -194,6 +199,18 @@ while true; do
         forward_list+=(${1:10})
         shift
         ;;
+    --outer-addr=*/*)
+        _addr=${1:13}
+        outer_addr="${_addr/\/*/}"
+        outer_addr_mask="${_addr/*\//}"
+        shift
+        ;;
+    --inner-addr=*/*)
+        _addr=${1:13}
+        inner_addr="${_addr/\/*/}"
+        inner_addr_mask="${_addr/*\//}"
+        shift
+        ;;
     --install)
         do_install
         exit 0
@@ -212,7 +229,14 @@ while true; do
     esac
 done
 
-setup_addr
+if { [[ ${inner_addr} == "" ]] || [[ ${outer_addr} == "" ]]; } && [[ "${inner_addr}${outer_addr}" != "" ]]; then
+    error "--inner-addr and --outer-addr should be set or not set at the same time"
+    exit 1
+fi
+
+if [[ "${inner_addr}${outer_addr}" == "" ]]; then
+    setup_addr
+fi
 
 trap kill_this EXIT
 
