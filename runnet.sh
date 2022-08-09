@@ -255,7 +255,7 @@ if [[ ${cmd_user} == "" ]]; then
     cmd_user=${SUDO_USER}
 fi
 if [[ ${cmd_user} != "" ]]; then
-    cmd="sudo -u ${cmd_user} ${cmd}"
+    cmd="sudo -u ${cmd_user} --shell ${cmd}"
 else
     warning "\${SUDO_USER} is empty and cmd will run as root"
 fi
