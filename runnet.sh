@@ -35,7 +35,7 @@ setup_addr() {
     for ip_num in {0..255}; do
         ip="192.168.${ip_num}.1"
         ok=1
-        for subnet in $(ip addr | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9][0-9]?\b"); do
+        for subnet in $(ip addr | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9][0-9]?\b"); do
             in_subnet ${subnet} ${ip} && {
                 ok=0
                 break
@@ -259,4 +259,8 @@ if [[ ${cmd_user} != "" ]]; then
 else
     warning "\${SUDO_USER} is empty and cmd will run as root"
 fi
+
+ip netns exec ${net_ns_name} sysctl net.ipv4.ping_group_range="$(sudo sysctl net.ipv4.ping_group_range -b)" -q
+
 ip netns exec ${net_ns_name} ${cmd}
+
